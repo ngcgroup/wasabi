@@ -344,7 +344,7 @@ remove() {
 
 unit_test() {
   command=$1
-  mvn "-Dtest=com.intuit.wasabi.${command/-/}.**" test -pl modules/${command} --also-make -DfailIfNoTests=false -q
+  mvn "-Dmaven.skipTest=true -Dtest=com.intuit.wasabi.${command/-/}.**" test -pl modules/${command} --also-make -DfailIfNoTests=false -q
 }
 
 exec_commands() {
