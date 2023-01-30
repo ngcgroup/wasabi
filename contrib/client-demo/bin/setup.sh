@@ -42,7 +42,7 @@ create() {
   uuid=`curl -s -u admin:admin -H'Content-Type: application/json' \
     -d '{"applicationName": "Demo_App", "samplingPercent": 1.0,  "label": "BuyButton", "description": "BuyButton experiment", "startTime": "2016-06-10T00:00:00-0000", "endTime": "2018-12-25T00:00:00-0000"}' $endpoint/api/v1/experiments | \
 
-    python -mjson.tool | \
+    python3 -mjson.tool | \
 
     grep '"id"' | \
 
@@ -57,11 +57,11 @@ create() {
   #CREATE 2 BUCKETS
   curl -s -u admin:admin -H 'Content-Type: application/json' \
     -d '{"label": "BucketA", "allocationPercent": 0.50, "isControl": "true","description": "green button control bucket","payload":"green"}' \
-    $endpoint/api/v1/experiments/$uuid/buckets | python -mjson.tool
+    $endpoint/api/v1/experiments/$uuid/buckets | python3 -mjson.tool
 
   curl -s -u admin:admin -H 'Content-Type: application/json' \
     -d '{"label": "BucketB", "allocationPercent": 0.50, "isControl": "false","description": "orange button bucket","payload":"orange"}' \
-    $endpoint/api/v1/experiments/$uuid/buckets | python -mjson.tool
+    $endpoint/api/v1/experiments/$uuid/buckets | python3 -mjson.tool
 
   #CHANGE EXPERIMENT FROM DRAFT TO RUNNING STATE
   curl -s -u admin:admin -H 'Content-Type: application/json' -X PUT -d '{"state": "RUNNING"}' $endpoint/api/v1/experiments/$uuid

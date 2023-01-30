@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
-
+#set -x
 formulas=("bash" "cask" "git" "git-flow-avh" "maven" "wget" "ruby" "node")
 taps=("caskroom/cask")
 casks=("java" "docker")
