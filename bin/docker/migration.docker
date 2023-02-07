@@ -1,5 +1,16 @@
 FROM openjdk:jre-alpine
 
+RUN apk add --update \
+    bash \
+    curl \
+    python3 py-pip && ln -sf python3 /usr/bin/python
+RUN python3 -m ensurepip
+RUN pip3 install --no-cache --upgrade pip setuptools cqlsh && \
+    mkdir /root/.cassandra
+
+#RUN bash -c "python <(curl https://bootstrap.pypa.io/get-pip.py)"; \
+#    pip install cqlsh && \
+#    mkdir /root/.cassandra
 
 ADD https://oss.sonatype.org/content/repositories/public/com/builtamont/cassandra-migration/0.9/cassandra-migration-0.9-jar-with-dependencies.jar /wasabi/cassandra-migration.jar
 ADD modules/repository-datastax/src/main/resources/com/intuit/wasabi/repository/impl/cassandra/migration /wasabi/mutation

@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: experimentation
+  labels:
+    cert-manager-tls: kubed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: experimentation-ui-service
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 80
+  selector:
+    com.bhn.service: experimentation-ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: experimentation-backend-service
+spec:
+  ports:
+    - name: "8080"
+      port: 8080
+      targetPort: 8080
+  selector:
+    com.bhn.service: experimentation-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    com.bhn.service: experimentation-ui
+  name: experimentation-ui-deployment
+  namespace: experimentation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.bhn.service: experimentation-ui
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        com.bhn.service: experimentation-ui
+    spec:
+      containers:
+        - env:
+            - name: PLACEHOLDER
+              value: "true"
+          name: experimentation-ui
+          ports:
+            - containerPort: 80
+          resources: {}
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    com.bhn.service: experimentation-backend-deployment
+  name: experimentation-backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.bhn.service: experimentation-backend
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        com.bhn.service: experimentation-backend
+    spec:
+      initContainers:
+      #  - name: init-myservice
+      #    image: busybox:1.28
+      #    command: [ 'sh', '-c', "until $(curl --output /dev/null --silent --head --fail http://cassandra.experimentation.svc.cluster.local:8080/api/v0/probes/liveness); do printf '.'; sleep 5; done" ]
+        - name: check-cassandra-ready
+          image: 982306614752.dkr.ecr.us-west-2.amazonaws.com/experimentation-migration
+          command: [ 'sh', '-c',
+            #'while ! nc -w 1 -z cassandra.experimentation.svc.cluster.local 9042; do sleep 2; done' ]
+            #'until $(cqlsh -e "SELECT * FROM schema_columnfamilies WHERE keyspace_name=\'bhn_experiments\' and columnfamily_name=\'experiment_tag\'") ; do echo waiting for cassandra; sleep 2; done;' ]
+            'until $(cqlsh cassandra 9042 -k bhn_experiments -e "describe table experiment_tag" 2>&1 > /dev/null;) ; do echo waiting for cassandra; sleep 2; done;' ]
+      containers:
+        - env:
+          - name: PLACEHOLDER
+            value: "true"
+          - name: USE_WASABI_ENV_CONFIGURATION
+            value: "1"
+          - name: CASSANDRA_HOST
+            value: "cassandra"
+          - name: CASSANDRA_PORT
+            value: "9042"
+          - name: CASSANDRA_DATACENTER
+            value: "datacenter1"
+          - name: CASSANDRA_USE_SSL
+            value: "false"
+          - name: CASSANDRA_KEYSPACE
+            value: "bhn_experiments"
+          envFrom:
+            - configMapRef:
+                name: env-bindings-cm
+          image: 982306614752.dkr.ecr.us-west-2.amazonaws.com/experimentation-server:latest
+          name: experimentation-backend
+          ports:
+            - containerPort: 8080
+            - containerPort: 8090
+            - containerPort: 8180
+          resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: api
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    #nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  #ingressClassName: nginx
+  tls:
+    - secretName: tls-cert
+      hosts:
+        - experimentation.bhn.technology
+  rules:
+    - host: experimentation.bhn.technology
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: experimentation-backend-service
+                port:
+                  number: 8080
+          - path: /swagger
+            pathType: Prefix
+            backend:
+              service:
+                name: experimentation-backend-service
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: experimentation-ui-service
+                port:
+                  number: 80
+---

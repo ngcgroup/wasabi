@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-1
+  namespace: experimentation
+spec:
+  template:
+    metadata:
+      name: sequential-job
+    spec:
+      initContainers:
+      - name: cassandra-migration
+        image: 982306614752.dkr.ecr.us-west-2.amazonaws.com/experimentation-migration
+        command:
+          - /wasabi/migration.sh
+        env:
+        - name: CASSANDRA_KEYSPACE
+          value: bhn_experiments
+        - name: CQLSH_HOST
+          value: cassandra.experimentation.svc.cluster.local
+        - name: CASSANDRA_KEYSPACE_PREFIX
+          value: bhn
+      containers:
+        - name: job-done
+          image: busybox
+          command: [ 'sh', '-c', 'echo "migration completed"' ]
+      restartPolicy: Never
+  backoffLimit: 4
+---

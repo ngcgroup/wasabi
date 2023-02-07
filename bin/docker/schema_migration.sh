@@ -1,4 +1,25 @@
 #!/usr/bin/env sh
+echo "cqlsh " \
+     "--cqlversion=\"${CQLSH_VERSION:-3.4.6}\" "\
+     "-e \"CREATE KEYSPACE IF NOT EXISTS ${CASSANDRA_KEYSPACE_PREFIX:-wasabi}_experiments WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : ${CASSANDRA_REPLICATION:-1}};\"" \
+     "--username=${CQLSH_USERNAME}" \
+     "--password=\"${CQLSH_PASSWORD}\"" \
+     "${CQLSH_HOST:-localhost}" \
+     "${CASSANDRA_PORT:-9042}"
+
+while ! nc -w 1 -z ${CQLSH_HOST:-localhost} ${CASSANDRA_PORT:-9042}; do sleep 0.1; done
+cqlsh --cqlversion="${CQLSH_VERSION:-3.4.6}" \
+    -e "CREATE KEYSPACE IF NOT EXISTS ${CASSANDRA_KEYSPACE_PREFIX:-wasabi}_experiments WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : ${CASSANDRA_REPLICATION:-1}};" \
+    --username=${CQLSH_USERNAME} \
+    --password="${CQLSH_PASSWORD}" \
+    ${CQLSH_HOST:-localhost} \
+    ${CASSANDRA_PORT:-9042}
+
+if [ $? -ne 0 ]; then
+    echo "failed to execute the create keyspace command. Please contact administrator."
+    exit 1;
+fi
+
 
 echo "java -jar -Dcassandra.migration.keyspace.name=${CASSANDRA_KEYSPACE:-wasabi_experiments} \
     -Dcassandra.migration.cluster.port=${CASSANDRA_PORT:-9042} \
